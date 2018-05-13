@@ -31,7 +31,8 @@ module ActiveRecord
 
     def exec_precount asso, fk_values
       refl = reflections[asso]
-      refl.klass.where({refl.foreign_key => fk_values}).group(refl.foreign_key).count
+      refl.klass.where({refl.foreign_key => fk_values}).
+        unscope(:order).group(refl.foreign_key).count
     end
 
     def set_count record, var_name, counts
