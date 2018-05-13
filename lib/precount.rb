@@ -1,5 +1,6 @@
 require "precount/version"
 require 'active_record'
+require 'precount/path'
 
 module Precount
   class << self
