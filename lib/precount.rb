@@ -41,6 +41,10 @@ module ActiveRecord
     end
   end
 
+  module Querying
+    delegate :precounts, to: :all
+  end
+
   module QueryMethods
     def precounts *args
       spawn.precounts!(*args)
