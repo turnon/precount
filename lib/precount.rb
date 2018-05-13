@@ -4,10 +4,11 @@ require 'active_record'
 module ActiveRecord
   class Relation
     alias_method :load_without_precount, :load
+    alias_method :reset_without_precount, :reset
 
     def load
       rt = load_without_precount
-      return rt if @records.empty?
+      return rt if @records.empty? || @precounted
 
       fk_values = @records.map(&:id).uniq
       precounts_values.each do |asso|
@@ -15,7 +16,14 @@ module ActiveRecord
         result = exec_precount asso, fk_values
         @records.each{ |rec| set_count rec, instance_var_name, result }
       end
+      @precounted = true
 
+      rt
+    end
+
+    def reset
+      rt = reset_without_precount
+      @precounted = nil
       rt
     end
 
