@@ -4,7 +4,7 @@ module Precount
   class Loader
 
     extend Forwardable
-    def_delegators :@relation, :klass, :precounts_values, :reflections
+    def_delegators :@relation, :klass, :precount_values, :reflections
 
     def initialize relation
       @relation = relation
@@ -12,7 +12,7 @@ module Precount
     end
 
     def load!
-      precounts_values.each do |asso|
+      precount_values.each do |asso|
         instance_var_name = "@#{asso}_count"
         result = exec_precount asso
         @records.each{ |rec| set_count rec, instance_var_name, result }
