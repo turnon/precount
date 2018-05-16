@@ -29,12 +29,18 @@ module ActiveRecord
     end
 
     def precount! *args
-      @precount_values = (precount_values | args)
+      @precount_values = (precount_values | args.map(&:to_sym))
       self
     end
 
     def precount_values
       @precount_values ||= []
+    end
+
+    def all_precount_associations
+      @all_precount_associations ||=
+        precount_values | preavg_values.keys |
+        premax_values.keys | premin_values.keys | presum_values.keys
     end
   end
 

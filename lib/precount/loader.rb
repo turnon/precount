@@ -4,7 +4,8 @@ module Precount
   class Loader
 
     extend Forwardable
-    def_delegators :@relation, :klass, :precount_values, :reflections
+    def_delegators :@relation, :klass, :reflections, :all_precount_associations,
+      :precount_values, :preavg_values, :premax_values, :premin_values, :presum_values
 
     def initialize relation
       @relation = relation
@@ -12,10 +13,10 @@ module Precount
     end
 
     def load!
-      precount_values.each do |asso|
-        instance_var_name = "@#{asso}_count"
-        result = exec_precount asso
-        @records.each{ |rec| set_count rec, instance_var_name, result }
+      all_precount_associations.each do |asso|
+        count_asso = precount_values.include?(asso) && asso
+        result = exec_precount asso, count_asso
+        @records.each{ |rec| set_result rec, result, count_asso }
       end
     end
 
@@ -33,25 +34,55 @@ module Precount
       @ids ||= @records.map{ |r| r[pk_name] }.uniq
     end
 
-    def exec_precount asso
-      joining = klass.joins(asso).where(pk_name => ids).unscope(:order)
-      refl = reflections[asso]
-
-      unless ActiveRecord::Reflection::ThroughReflection === refl
-        result = joining.group(full_pk_name).count
-        return result.keys.each_with_object(result){ |k, h| h[k.to_s] = h.delete(k) }
-      end
-
-      asso_klass = refl.klass
-      wanted_columns = "#{full_pk_name} id, #{asso_klass.table_name}.#{asso_klass.primary_key} asso"
-      id_pairs = joining.select(wanted_columns).distinct.to_sql
-      q = klass.connection.select_all("select id, count(*) count_all from (#{id_pairs}) t group by id")
-      q.each_with_object({}){ |row, rs| rs[row['id']] = row['count_all'] }
+    def aggregate(asso, count_asso)
+      table = reflections[asso].klass.table_name
+      agg = []
+      agg << "COUNT(1) #{asso}_count" if count_asso
+      preavg_values[asso].each{ |column| agg << "AVG(#{table}.#{column}) avg_#{asso}_#{column}" }
+      premax_values[asso].each{ |column| agg << "MAX(#{table}.#{column}) max_#{asso}_#{column}" }
+      premin_values[asso].each{ |column| agg << "MIN(#{table}.#{column}) min_#{asso}_#{column}" }
+      presum_values[asso].each{ |column| agg << "SUM(#{table}.#{column}) sum_#{asso}_#{column}" }
+      agg.join(', ')
     end
 
-    def set_count record, var_name, counts
-      c = counts[record[pk_name].to_s].to_i
-      record.instance_variable_set var_name, c
+    def want(asso)
+      table = reflections[asso].klass.table_name
+      asso_pk_name = reflections[asso].klass.primary_key.to_sym
+      columns = [asso_pk_name] | preavg_values[asso] |
+        premax_values[asso] | premin_values[asso] | presum_values[asso]
+      columns.map{ |column| "#{table}.#{column} #{column}" }.join(', ')
+    end
+
+    def exec_precount asso, count_asso
+      joining = klass.joins(asso).where(pk_name => ids).unscope(:order)
+      refl = reflections[asso]
+      aggregated_columns = aggregate(asso, count_asso)
+
+      unless ActiveRecord::Reflection::ThroughReflection === refl
+        sql = joining.group(full_pk_name).select("#{full_pk_name} id, #{aggregated_columns}").to_sql
+        result = klass.connection.select_all(sql)
+        return result.each_with_object({}){ |row, rs| rs[row.delete('id')] = row }
+      end
+
+      key = "#{klass.table_name}_id"
+      table = reflections[asso].klass.table_name
+      wanted_columns = "#{full_pk_name} #{key}, #{want(asso)}"
+      id_pairs = joining.select(wanted_columns).distinct.to_sql
+      q = klass.connection.select_all("select #{key} id, #{aggregated_columns} from (#{id_pairs}) #{table} group by #{key}")
+      q.each_with_object({}){ |row, rs| rs[row.delete('id')] = row }
+    end
+
+    def set_result record, result, count_asso
+      row = result[record[pk_name].to_s]
+
+      if row.nil?
+        record.instance_variable_set "@#{count_asso}_count", 0 if count_asso
+        return
+      end
+
+      row.each_pair do |column, value|
+        record.instance_variable_set "@#{column}", value
+      end
     end
   end
 end
