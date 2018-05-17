@@ -7,11 +7,10 @@ module Precount
     def_delegators :@relation, :klass, :pk_name, :full_pk_name, :ids, :reflections,
       :precount_values, :preavg_values, :premax_values, :premin_values, :presum_values
 
-    attr_reader :asso
-
     def initialize relation, asso
       @relation = relation
       @asso = asso
+      query!
     end
 
     def assign record
@@ -23,18 +22,20 @@ module Precount
       end
 
       row.each_pair do |column, value|
+        value = column_types[column].type_cast value
         record.instance_variable_set "@#{column}", value
       end
     end
 
     private
 
-    def result
-      @result ||= (
-        sql = ActiveRecord::Reflection::ThroughReflection === reflection ? from_through : not_from_through
-        klass.connection.select_all(sql).
-          each_with_object({}){ |row, rs| rs[row.delete('id')] = row }
-      )
+    attr_reader :asso, :result, :column_types
+
+    def query!
+      sql = ActiveRecord::Reflection::ThroughReflection === reflection ? from_through : not_from_through
+      rt = klass.connection.select_all(sql)
+      @column_types = rt.column_types
+      @result = rt.each_with_object({}){ |row, rs| rs[row.delete('id')] = row }
     end
 
     def count?
