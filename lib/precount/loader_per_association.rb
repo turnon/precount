@@ -14,6 +14,21 @@ module Precount
       @asso = asso
     end
 
+    def assign record
+      row = result[record[pk_name].to_s]
+
+      if row.nil?
+        record.instance_variable_set "@#{asso}_count", 0 if count?
+        return
+      end
+
+      row.each_pair do |column, value|
+        record.instance_variable_set "@#{column}", value
+      end
+    end
+
+    private
+
     def result
       @result ||= (
         sql = ActiveRecord::Reflection::ThroughReflection === reflection ? from_through : not_from_through
@@ -26,8 +41,6 @@ module Precount
       return @counting if defined?(@counting)
       @counting = precount_values.include? asso
     end
-
-    private
 
     def reflection
       @reflection ||= reflections[asso]
