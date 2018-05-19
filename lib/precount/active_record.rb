@@ -20,28 +20,32 @@ module ActiveRecord
   end
 
   module Querying
-    delegate :precount, :preavg, :premax, :premin, :presum, to: :all
+    delegate :precount, :prexists, :preavg, :premax, :premin, :presum, to: :all
   end
 
   module QueryMethods
-    def precount *args
-      spawn.precount!(*args)
-    end
-
-    def precount! *args
-      @precount_values = (precount_values | args.map(&:to_sym))
-      self
-    end
-
-    def precount_values
-      @precount_values ||= []
-    end
-
     def all_precount_associations
       @all_precount_associations ||=
         precount_values | preavg_values.keys |
         premax_values.keys | premin_values.keys | presum_values.keys
     end
+  end
+
+  [:count, :xists].each do |q|
+    QueryMethods.class_eval <<-RUBY, __FILE__, __LINE__
+      def pre#{q} *args
+        spawn.pre#{q}!(*args)
+      end
+
+      def pre#{q}! *args
+        @pre#{q}_values = (pre#{q}_values | args.map(&:to_sym))
+        self
+      end
+
+      def pre#{q}_values
+        @pre#{q}_values ||= []
+      end
+    RUBY
   end
 
   [:avg, :max, :min, :sum].each do |q|
