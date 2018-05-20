@@ -29,10 +29,6 @@ module Precount
       @pk_name ||= klass.primary_key.to_sym
     end
 
-    def full_pk_name
-      @full_pk_name ||= "#{klass.table_name}.#{klass.primary_key}"
-    end
-
     def ids
       @ids ||= @records.map{ |r| r[pk_name] }.uniq
     end
