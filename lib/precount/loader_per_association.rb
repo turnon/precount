@@ -1,10 +1,13 @@
 require 'forwardable'
+require 'precount/association'
 
 module Precount
   class LoaderPerAssociation
 
+    include Association
+
     extend Forwardable
-    def_delegators :@relation, :klass, :pk_name, :full_pk_name, :ids, :reflections,
+    def_delegators :@relation, :klass, :pk_name, :ids, :reflections,
       :precount_values, :preavg_values, :premax_values, :premin_values, :presum_values
 
     def initialize relation, asso
@@ -71,18 +74,15 @@ module Precount
       )
     end
 
-    def joining
-      @joining ||= klass.joins(asso).where(pk_name => ids).unscope(:order)
-    end
-
     def from_through
       parent_id = "#{klass.table_name}_id"
-      id_pairs = joining.select("#{full_pk_name} #{parent_id}, #{wanted_columns}").distinct.to_sql
+      id_pairs = joining_and_filter.select("#{full_fk_name} #{parent_id}, #{wanted_columns}").distinct.to_sql
       "select #{parent_id} id, #{aggregate_functions} from (#{id_pairs}) #{associated_table} group by #{parent_id}"
     end
 
     def not_from_through
-      joining.group(full_pk_name).select("#{full_pk_name} id, #{aggregate_functions}").to_sql
+      joining_and_filter.group(full_fk_name).
+        select("#{full_fk_name} id, #{aggregate_functions}").to_sql
     end
   end
 end

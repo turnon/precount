@@ -1,12 +1,16 @@
 module Precount
   module Association
 
-    # descendants should implement method `reflection`
+    # descendants should implement method `reflection` and `ids`
 
     protected
 
     def joining_and_filter
       @joining_and_filter ||= source_relation.joins(joins_args)
+    end
+
+    def full_fk_name
+      @full_fk_name ||= "#{first_join.klass.table_name}.#{first_join.foreign_key}"
     end
 
     private
