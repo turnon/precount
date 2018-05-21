@@ -24,7 +24,7 @@ module Precount
 
     def result
       @result ||= joining_and_filter.
-        distinct(first_join.foreign_key).pluck(first_join.foreign_key).to_set
+        distinct(full_fk_name).pluck(full_fk_name).to_set
     end
 
     def reflection
