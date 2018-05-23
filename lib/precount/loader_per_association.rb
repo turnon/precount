@@ -50,10 +50,6 @@ module Precount
       @reflection ||= reflections[asso]
     end
 
-    def associated_table
-      @associated_table ||= reflection.klass.table_name
-    end
-
     def aggregate_functions
       @aggregate ||= (
         agg = []

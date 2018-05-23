@@ -9,6 +9,18 @@ module Precount
       @joining_and_filter ||= source_relation.joins(joins_args)
     end
 
+    def associated_table
+      @associated_table ||= (
+        source = joining_and_filter.arel.source
+        if joins_args.empty?
+          source.left.name
+        else
+          table = source.right[0].left
+          table.table_alias || table.name
+        end
+      )
+    end
+
     def full_fk_name
       @full_fk_name ||=
         if has_and_belongs_to_many?
