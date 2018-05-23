@@ -32,5 +32,9 @@ module Precount
     def ids
       @ids ||= @records.map{ |r| r[pk_name] }.uniq
     end
+
+    def any_record
+      @record ||= @records[0]
+    end
   end
 end
