@@ -70,7 +70,7 @@ module Precount
       @wanted_columns ||= (
         asso_pk_name = reflection.klass.primary_key.to_sym
         columns = [asso_pk_name] | preavg_values[asso] | premax_values[asso] | premin_values[asso] | presum_values[asso]
-        columns.map{ |column| "#{associated_table}.#{column} #{column}" }.join(', ')
+        columns.map{ |column| "#{associated_table}.#{column}" }.join(', ')
       )
     end
 
