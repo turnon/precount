@@ -6,12 +6,12 @@ module Precount
   class Loader
 
     extend Forwardable
-    def_delegators :@relation, :klass, :reflections, :all_precount_associations,
+    def_delegators :@relation, :all_precount_associations,
       :precount_values, :preavg_values, :premax_values, :premin_values, :presum_values, :prexists_values
 
     def initialize relation
       @relation = relation
-      @records = @relation.instance_variable_get :@records
+      @records = relation.instance_variable_get :@records
     end
 
     def load!
@@ -26,7 +26,7 @@ module Precount
     end
 
     def pk_name
-      @pk_name ||= klass.primary_key.to_sym
+      @pk_name ||= any_record.class.primary_key.to_sym
     end
 
     def ids
