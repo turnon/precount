@@ -7,7 +7,7 @@ module Precount
     include Collection
 
     extend Forwardable
-    def_delegators :@relation, :pk_name, :ids, :any_record,
+    def_delegators :@relation, :key_name, :bind_values, :any_record,
       :precount_values, :preavg_values, :premax_values, :premin_values, :presum_values
 
     def initialize relation, asso
@@ -17,7 +17,7 @@ module Precount
     end
 
     def assign record
-      row = result[record[pk_name].to_s]
+      row = result[record[key].to_s]
 
       if row.nil?
         record.instance_variable_set "@#{asso}_count", 0 if count?
