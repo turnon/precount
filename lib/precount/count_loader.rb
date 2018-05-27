@@ -1,13 +1,13 @@
 require 'forwardable'
-require 'precount/association'
+require 'precount/collection'
 
 module Precount
-  class LoaderPerAssociation
+  class CountLoader
 
-    include Association
+    include Collection
 
     extend Forwardable
-    def_delegators :@relation, :klass, :pk_name, :ids, :reflections,
+    def_delegators :@relation, :pk_name, :ids, :any_record,
       :precount_values, :preavg_values, :premax_values, :premin_values, :presum_values
 
     def initialize relation, asso
@@ -47,11 +47,11 @@ module Precount
     end
 
     def reflection
-      @reflection ||= reflections[asso]
+      @reflection ||= klass.reflections[asso]
     end
 
-    def associated_table
-      @associated_table ||= reflection.klass.table_name
+    def from_through?
+      ActiveRecord::Reflection::ThroughReflection === reflection
     end
 
     def aggregate_functions
@@ -70,12 +70,16 @@ module Precount
       @wanted_columns ||= (
         asso_pk_name = reflection.klass.primary_key.to_sym
         columns = [asso_pk_name] | preavg_values[asso] | premax_values[asso] | premin_values[asso] | presum_values[asso]
-        columns.map{ |column| "#{associated_table}.#{column} #{column}" }.join(', ')
+        columns.map{ |column| "#{associated_table}.#{column}" }.join(', ')
       )
     end
 
+    def klass
+      @klass ||= any_record.class
+    end
+
     def from_through
-      parent_id = "#{klass.table_name}_id"
+      parent_id = "associated_#{full_fk_name}_id".gsub(/[\W|_]+/, '_')
       id_pairs = joining_and_filter.select("#{full_fk_name} #{parent_id}, #{wanted_columns}").distinct.to_sql
       "select #{parent_id} id, #{aggregate_functions} from (#{id_pairs}) #{associated_table} group by #{parent_id}"
     end
