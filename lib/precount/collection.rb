@@ -10,7 +10,7 @@ module Precount
 
     def joining_and_filter
       return @joining_and_filter if @joining_and_filter
-      rel = any_record.send(asso).unscope(:order)
+      rel = any_record.association(asso).scope.unscope(:order)
       i = rel.where_values.index{|w| Arel::Nodes::Equality === w && w.right == '$1' }
       @full_fk_name = rel.where_values.delete_at(i).to_sql.sub! /\s*\=.*/, ''
       rel.bind_values.pop
