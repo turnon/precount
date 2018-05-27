@@ -1,5 +1,5 @@
 require 'forwardable'
-require 'precount/loader_per_association'
+require 'precount/count_loader'
 require 'precount/exists_loader'
 
 module Precount
@@ -16,8 +16,8 @@ module Precount
 
     def load!
       all_precount_associations.each do |asso|
-        loader_per_asso = LoaderPerAssociation.new(self, asso)
-        @records.each{ |rec| loader_per_asso.assign rec }
+        count_loader = CountLoader.new(self, asso)
+        @records.each{ |rec| count_loader.assign rec }
       end
       prexists_values.each do |asso|
         xloader = ExistsLoader.new(self, asso)

@@ -2,7 +2,7 @@ require 'forwardable'
 require 'precount/collection'
 
 module Precount
-  class LoaderPerAssociation
+  class CountLoader
 
     include Collection
 
