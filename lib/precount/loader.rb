@@ -25,6 +25,26 @@ module Precount
       end
     end
 
+    def any_record
+      @record ||= @records[0]
+    end
+
+    def key_name asso
+      refl = adjacent_reflection(asso)
+      refl.macro == :belongs_to ? refl.foreign_key : pk_name
+    end
+
+    def bind_values asso
+      refl = adjacent_reflection(asso)
+      refl.macro == :belongs_to ? fks(refl.foreign_key) : ids
+    end
+
+    private
+
+    def adjacent_reflection asso
+      @relation.reflections[asso].chain[-1]
+    end
+
     def pk_name
       @pk_name ||= any_record.class.primary_key.to_sym
     end
@@ -33,8 +53,9 @@ module Precount
       @ids ||= @records.map{ |r| r[pk_name] }.uniq
     end
 
-    def any_record
-      @record ||= @records[0]
+    def fks fk_name
+      (@fks ||= Hash.new{ |h, k| h[k] = @records.map{ |r| r[k] }.uniq })[fk_name]
     end
+
   end
 end
